@@ -1,14 +1,52 @@
+import { ChangeEvent, useState } from "react";
 import logo from "./assets/logo-nlw-expert.png";
 import { NewNoteCard } from "./components/new-note-card";
 import { NoteCard } from "./components/note-card";
 
-const note = {
-  date: new Date(),
-  content:
-    "Lorem ipsum dolor sit amet consectetur adipisicing elit. Molestiae modi sapiente porro officia qui earum! Commodi exercitationem labore animi distinctio. Totam delectus rerum explicabo excepturi corporis eum id laboriosam earum?",
+export type Note = {
+  id: string;
+  date: Date;
+  content: string;
 };
 
 export function App() {
+  const [search, setSearch] = useState<string>("");
+  const [notes, setNotes] = useState<Note[]>(() => {
+    const notesOnStorage = localStorage.getItem("notes");
+
+    if (notesOnStorage) {
+      return JSON.parse(notesOnStorage);
+    }
+
+    return [];
+  });
+
+  const onNoteCreated = (content: string) => {
+    const newNote: Note = {
+      id: crypto.randomUUID(),
+      date: new Date(),
+      content,
+    };
+
+    const notesArray = [newNote, ...notes];
+
+    setNotes(notesArray);
+
+    localStorage.setItem("notes", JSON.stringify(notes));
+  };
+
+  const handleSearch = (event: ChangeEvent<HTMLInputElement>) => {
+    const query = event.target.value;
+    setSearch(query);
+  };
+
+  const filteredNotes =
+    search !== ""
+      ? notes.filter((note) =>
+          note.content.toLowerCase().includes(search.toLowerCase())
+        )
+      : notes;
+
   return (
     <div className="mx-auto max-w-6xl my-12 space-y-6">
       <img src={logo} alt="logo do nwl expert" />
@@ -17,6 +55,7 @@ export function App() {
           name="search"
           type="text"
           className="w-full bg-transparent placeholder:text-slate-500 tracking-tight outline-none text-3xl font-semibold"
+          onChange={handleSearch}
           placeholder="Busque em suas notas..."
         />
       </form>
@@ -24,8 +63,10 @@ export function App() {
       <div className="bg-slate-700 h-px w-full" />
 
       <div className="grid grid-cols-3 gap-6 auto-rows-[250px]">
-        <NewNoteCard />
-        <NoteCard note={note} />
+        <NewNoteCard onNoteCreated={onNoteCreated} />
+        {filteredNotes.map((note) => {
+          return <NoteCard key={note.id} note={note} />;
+        })}
       </div>
     </div>
   );
